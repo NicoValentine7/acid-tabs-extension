@@ -15,26 +15,47 @@ const tabColors = [
 
 let collapsed = false;
 
+/**
+ * すべてのウィンドウキーをクリアするよ！🧹
+ */
 const clearAllWindowKeys = () => {
   syncStorage.removeAll('window:');
   localStorage.removeAll('window:');
 };
 
+/**
+ * 短いルールにマッチするかチェックする関数だよ！🔍
+ * @param {string} rule - チェックするルールだよ
+ * @returns {RegExp} - 生成された正規表現
+ */
 function matchRuleShort(rule) {
   var escapeRegex = (str) => str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
   return new RegExp(rule.split('*').map(escapeRegex).join('.*'));
 }
 
+/**
+ * グループルールを取得するよ！📚
+ * @returns {Promise<Array>} - ソートされたグループルールの配列
+ */
 const getGroupRules = async () => {
   const groupRules = await syncStorage.get('groupRules');
   return groupRules ? groupRules.sort((a, b) => a.key - b.key) : [];
 };
 
+/**
+ * 現在のウィンドウを取得するよ！🏠
+ * @returns {Promise<Object>} - 現在のウィンドウオブジェクト
+ */
 const getCurrentWindow = async () => {
   const window = await chrome.windows.getCurrent();
   return window;
 };
 
+/**
+ * タブグループに対するルールを取得するよ！📏
+ * @param {number} tabGroupId - タブグループのID
+ * @returns {Promise<Object|null>} - ルールオブジェクト、またはnull
+ */
 const getRuleForTabGroup = async (tabGroupId) => {
   const windowGroupEntries = await localStorage.getAll(
     `window:.*:rule:.*:groupId`
@@ -51,6 +72,11 @@ const getRuleForTabGroup = async (tabGroupId) => {
   return null;
 };
 
+/**
+ * 特定のウィンドウIDに対するアシッドタブグループを取得するよ！🧪
+ * @param {number|null} windowId - ウィンドウID、指定しない場合はnull
+ * @returns {Promise<Array>} - タブグループIDの配列
+ */
 const getAcidTabGroups = async (windowId = null) => {
   const pattern = windowId
     ? `window:${windowId}:rule:.*:groupId`
@@ -59,9 +85,18 @@ const getAcidTabGroups = async (windowId = null) => {
   return windowGroupEntries.map(([k, v]) => v) || [];
 };
 
+/**
+ * IDに基づいてタブグループを取得するよ！🔍
+ * @param {number} id - タブグループのID
+ * @returns {Promise<Object>} - タブグループオブジェクト
+ */
 const getTabGroup = async (id) =>
   new Promise((resolve) => chrome.tabGroups.get(id, resolve));
 
+/**
+ * タブグループを更新するよ！🔄
+ * @param {Object} args - 更新する引数（collapsedなど）
+ */
 const updateTabGroups = async (args = {}) => {
   if (chrome.tabGroups) {
     if (args.collapsed !== undefined) {
@@ -85,6 +120,9 @@ const updateTabGroups = async (args = {}) => {
   }
 };
 
+/**
+ * ルールに一致しないタブをグループからキックアウトするよ！🚀
+ */
 const kickoutNonMatchingTabs = async () => {
   const window = await getCurrentWindow();
   const tabGroups = await getAcidTabGroups();
@@ -99,6 +137,12 @@ const kickoutNonMatchingTabs = async () => {
   }
 };
 
+/**
+ * ルールに基づいてタブの色を取得するよ！🌈
+ * @param {Object} rule - ルールオブジェクト
+ * @param {Array} rules - ルールの配列
+ * @returns {string} - タブの色
+ */
 const getColorForRule = (rule, rules) => {
   if (rule.color) return rule.color;
   const index = rules.findIndex((r) => r.id === rule.id);
@@ -106,17 +150,34 @@ const getColorForRule = (rule, rules) => {
   return color;
 };
 
+/**
+ * ルールに基づいてグループIDを取得するよ！🆔
+ * @param {number} windowId - ウィンドウID
+ * @param {Object} rule - ルールオブジェクト
+ * @returns {Promise<number>} - グループID
+ */
 const getGroupIdForRule = async (windowId, rule) => {
   const key = `window:${windowId}:rule:${rule.id}:groupId`;
   const ruleId = await localStorage.get(key);
   return ruleId;
 };
 
+/**
+ * ルールに基づいてグループIDを設定するよ！📝
+ * @param {Object} rule - ルールオブジェクト
+ * @param {number} windowId - ウィンドウID
+ * @param {number} groupId - グループID
+ */
 const setGroupIdForRule = async (rule, windowId, groupId) => {
   const key = `window:${windowId}:rule:${rule.id}:groupId`;
   await localStorage.set(key, groupId);
 };
 
+/**
+ * アクティブなグループIDを取得するよ！🔍
+ * @param {number} windowId - ウィンドウID
+ * @returns {Promise<Array>} - アクティブなグループIDの配列
+ */
 const getActiveGroupIds = async (windowId) => {
   const rules = await getGroupRules();
   const groupIds = await Promise.all(
@@ -247,42 +308,54 @@ const alignTabs = async (windowId) => {
     }
   }
 };
-
+/**
+ * タブ📑を処理し、適切なタブグループ🗂に割り当てる関数です。
+ * タブが特定のルール📏に一致する場合、そのルールに基づいてタブグループを作成または更新します。
+ * タブがドラッグ中にエラーが発生した場合、指定された回数だけリトライします。
+ *
+ * @param {number} tabId - 処理するタブのID🆔です。
+ * @param {number} retryCount - ユーザーによるタブのドラッグ操作中にエラーが発生した場合のリトライ回数です。デフォルトは3回です。
+ * @returns {Promise<void>} 処理が完了したら解決するプロミスです。
+ */
 const handleTab = async (tabId, retryCount = 3) => {
   try {
-    const tab = await chrome.tabs.get(tabId);
-    const windowId = tab.windowId;
-    const rules = await getGroupRules();
-    const rule = checkForRuleMatch(tab.url, rules) || null;
+    const tab = await chrome.tabs.get(tabId); // タブの情報を取得します。
+    const windowId = tab.windowId; // タブが属するウィンドウのIDを取得します。
+    const rules = await getGroupRules(); // グループ化のルールを取得します。
+    const rule = checkForRuleMatch(tab.url, rules) || null; // タブのURLがルールに一致するか確認します。
     if (rule && !tab.pinned) {
-      const existingGroupId = await getGroupIdForRule(windowId, rule);
+      // タブがルールに一致し、ピン留めされていない場合
+      const existingGroupId = await getGroupIdForRule(windowId, rule); // 既存のグループIDを取得します。
       const groupId = await getOrCreateTabGroup(
         windowId,
         tabId,
         existingGroupId
-      );
+      ); // タブグループを取得または作成するよ！
 
-      updateTabGroupForRule(windowId, groupId, rule);
+      updateTabGroupForRule(windowId, groupId, rule); // タブグループを更新するよ！
       if (existingGroupId !== groupId) {
-        await setGroupIdForRule(rule, windowId, groupId);
+        // 新しいグループIDが既存のものと異なる場合
+        await setGroupIdForRule(rule, windowId, groupId); // 新しいグループIDを設定するよ！
       }
     } else {
-      const tabGroups = await getAcidTabGroups();
-      const inAcidTabGroup = tabGroups.includes(tab.groupId);
-      if (inAcidTabGroup) await chrome.tabs.ungroup(tab.id);
+      // タブがルールに一致しない場合
+      const tabGroups = await getAcidTabGroups(); // タブグループを取得するよ！
+      const inAcidTabGroup = tabGroups.includes(tab.groupId); // タブが特定のタブグループに含まれているか確認するよ！
+      if (inAcidTabGroup) await chrome.tabs.ungroup(tab.id); // タブをグループから外すよ！
     }
   } catch (e) {
-    // Extra retry logic for dealing with cases where a tab is still being dragged by user
+    // タブがドラッグ中にエラーが発生した場合の追加のリトライロジックだよ！
     const isTabMoveError =
       e.message ==
-      'Tabs cannot be edited right now (user may be dragging a tab).';
+      'Tabs cannot be edited right now (user may be dragging a tab).'; // エラーメッセージを確認するよ！
     if (isTabMoveError && retryCount > 0) {
-      const delay = 250 * retryCount;
-      await new Promise((res) => setTimeout(res, delay));
-      return handleTab(tabId, retryCount - 1);
+      // エラーがタブの移動に関連しており、リトライ回数が残っている場合
+      const delay = 250 * retryCount; // リトライの遅延時間を計算するよ！
+      await new Promise((res) => setTimeout(res, delay)); // 指定された時間だけ待機するよ！
+      return handleTab(tabId, retryCount - 1); // リトライするよ！
     }
 
-    console.error(e.stack);
+    console.error(e.stack); // エラーをコンソールに出力するよ！
   }
 };
 
@@ -341,6 +414,10 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 });
 
+/**
+ * タブグループが更新されたときの処理だよ！🔄
+ * @param {Object} tabGroup - 更新されたタブグループ
+ */
 const handleTabGroupUpdate = async (tabGroup) => {
   alignTabs(tabGroup.windowId);
   const rules = await getGroupRules();
