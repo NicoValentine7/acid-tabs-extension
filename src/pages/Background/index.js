@@ -186,6 +186,11 @@ const getActiveGroupIds = async (windowId) => {
   return groupIds.filter((gId) => !!gId) || [];
 };
 
+/**
+ * すべてのタブ📑をそのウィンドウ🏠で割り当てるよ！
+ * 完了したタブをクエリして、現在のウィンドウを取得した後、
+ * それぞれのタブに対して処理を行い、最後にタブを整列させるんだ。
+ */
 const assignAllTabsInWindow = async () => {
   const tabs = await chrome.tabs.query({ status: 'complete' });
   const window = await getCurrentWindow();
@@ -195,6 +200,15 @@ const assignAllTabsInWindow = async () => {
   alignTabs(window.id);
 };
 
+/**
+ * URLがルール📏にマッチするかチェックするよ！
+ * ルールのパターンを改行とスペースで分割して、URLがパターンにマッチするかどうかを確認するんだ。
+ * マッチしたルールがあればそれを返すよ。
+ *
+ * @param {string} url - チェックするURL🔗だよ。
+ * @param {Array} rules - チェックするルールの配列📜だよ。
+ * @returns {Object|null} マッチしたルール、なければnullを返すよ。
+ */
 const checkForRuleMatch = (url, rules) => {
   for (const rule of rules) {
     const lineSplit = rule.pattern.split('\n');
@@ -209,6 +223,11 @@ const checkForRuleMatch = (url, rules) => {
   return null;
 };
 
+/**
+ * 古いウィンドウエントリ🏠をクリアするよ！
+ * localStorageから古いウィンドウエントリを取得して、
+ * 現在開いているウィンドウに存在しないものを削除するんだ。
+ */
 const clearOldWindowEntries = async () => {
   const allWindowEntries = await localStorage.getAll('window:.*:tabGroups');
   const windows = await chrome.windows.getAll();
@@ -220,6 +239,12 @@ const clearOldWindowEntries = async () => {
   await localStorage.remove(oldKeys);
 };
 
+/**
+ * 古いエントリ🗑をクリアするよ！
+ * localStorageから古いルールグループエントリを取得して、
+ * 現在のルールに存在しないものを削除するんだ。
+ * それに、古いグループIDに属するタブがあれば、それらをグループから外すよ。
+ */
 const clearOldEntries = async () => {
   const allRuleGroupEntries = await localStorage.getAll(
     'window:.*:rule:.*:groupId'
@@ -240,6 +265,14 @@ const clearOldEntries = async () => {
   await localStorage.remove(oldKeys);
 };
 
+/**
+ * ルール📏に基づいてタブグループ🗂を更新するよ！
+ * グループIDとルールに基づいて、タブグループのタイトルと色を更新するんだ。
+ *
+ * @param {number} windowId - ウィンドウID🏠だよ。
+ * @param {number} groupId - グループID🆔だよ。
+ * @param {Object} rule - ルールオブジェクト📏だよ。
+ */
 const updateTabGroupForRule = async (windowId, groupId, rule) => {
   if (chrome.tabGroups) {
     const rules = await getGroupRules();
@@ -259,6 +292,15 @@ const updateTabGroupForRule = async (windowId, groupId, rule) => {
   }
 };
 
+/**
+ * タブグループ🗂を取得または作成するよ！
+ * 既存のグループIDがあればそれを使って、なければ新しいグループを作成するんだ。
+ *
+ * @param {number} windowId - ウィンドウID🏠だよ。
+ * @param {number} tabId - タブID📑だよ。
+ * @param {number} existingGroupId - 既存のグループID🆔だよ。
+ * @returns {Promise<number>} グループID🆔を返すよ。
+ */
 const getOrCreateTabGroup = async (windowId, tabId, existingGroupId) => {
   const createProperties = existingGroupId ? undefined : { windowId };
   let groupId;
@@ -282,6 +324,13 @@ const getOrCreateTabGroup = async (windowId, tabId, existingGroupId) => {
   return groupId;
 };
 
+/**
+ * タブ📑を整列させるよ！
+ * タブグループ🗂をルール📏に基づいて順番に並べ替えるんだ。
+ * ピン留めされたタブはそのままにして、残りのタブをルールに従って移動させるよ。
+ *
+ * @param {number} windowId - ウィンドウID🏠だよ。
+ */
 const alignTabs = async (windowId) => {
   if (chrome.tabGroups) {
     const rules = await getGroupRules();
