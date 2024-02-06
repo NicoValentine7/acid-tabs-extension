@@ -9,8 +9,8 @@ import './index.css';
 render(
   <Router>
     <Routes>
-      <Route path="/*" element={<Popup />} />
-      <Route path="/" element={<SettingsPage />} />
+      <Route path="/*" element={<SettingsPage />} />
+      <Route path="/popup" element={<Popup />} />
     </Routes>
   </Router>,
   window.document.querySelector('#app-container')
