@@ -28,7 +28,7 @@
     "react-dom": "^17.0.1",
     "react-draggable": "^4.4.3",
     "react-hot-loader": "^4.13.0",
-    "sass": "^1.56.1",
+    "sass": "^1.70.0",
     "styled-components": "^5.2.1"
   },
   "devDependencies": {
@@ -53,7 +53,6 @@
     "fs-extra": "^9.1.0",
     "html-loader": "^2.1.0",
     "html-webpack-plugin": "^5.2.0",
-    "node-sass": "^4.14.1",
     "prettier": "^2.2.1",
     "sass-loader": "^11.0.1",
     "source-map-loader": "^2.0.1",
