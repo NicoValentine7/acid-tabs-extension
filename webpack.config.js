@@ -172,6 +172,9 @@ var options = {
   infrastructureLogging: {
     level: 'info',
   },
+  devServer: {
+    historyApiFallback: true,
+  },
 };
 
 if (env.NODE_ENV === 'development') {

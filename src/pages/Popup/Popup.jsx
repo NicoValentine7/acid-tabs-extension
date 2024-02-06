@@ -4,13 +4,14 @@ import styled, { createGlobalStyle } from 'styled-components';
 import './Fix';
 import './Popup.css';
 import RuleForm from './RuleForm';
-import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+import { ThemeProvider } from '@material-ui/core/styles';
+import { createTheme } from '@material-ui/core/styles';
 import UpgradeNotice from './UpgradeNotice';
 import { syncStorage } from '../Background/storageManager';
 
 import debounce from 'lodash.debounce';
 
-const theme = createMuiTheme({
+const theme = createTheme({
   palette: {
     type: 'dark',
   },
