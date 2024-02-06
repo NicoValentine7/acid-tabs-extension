@@ -360,56 +360,68 @@ const handleTab = async (tabId, retryCount = 3) => {
 };
 
 chrome.webNavigation.onCommitted.addListener(async ({ tabId, url }) => {
+  // タブがコミットされたら、このタブを処理するんだ🚀
   handleTab(tabId);
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+  // タブが更新されたら、URLが変わったかグループが解除されたかチェックするんだ🔍
   if (changeInfo.url || changeInfo.groupId == -1) {
     handleTab(tabId);
   }
 });
 
 chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
-  // Use larger retry count due to higher probability of user still dragging tab
+  // タブがアクティブになったら、ちょっと多めにリトライしてみるよ🔄
+  // ユーザーがまだドラッグしてる可能性が高いからね🐭
   handleTab(tabId, 5);
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  // 拡張機能が起動したら、古いウィンドウキーを全部消すぞ🧹
   clearAllWindowKeys();
 });
 
-// Scan all existing tabs and assign them
+// 既存の全タブをスキャンして、適切なグループに割り当てるんだ🔎
 try {
   assignAllTabsInWindow();
   kickoutNonMatchingTabs();
 } catch (e) {
+  // 何か問題があったら、エラーをコンソールに出力するよ🚨
   console.error(e.stack);
 }
 
 chrome.action.onClicked.addListener((tab) => {
+  // アクションボタンがクリックされたら、タブを再割り当てするんだ🔄
   assignAllTabsInWindow();
   kickoutNonMatchingTabs();
 });
 
 chrome.commands.onCommand.addListener((command) => {
+  // コマンドが実行されたら、特定のコマンドに応じてタブグループを更新するんだ🛠
   if (command === 'toggle-collapse') {
     updateTabGroups({ collapsed: !collapsed });
   }
 });
 
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  // メッセージが送られてきたら、内容に応じて処理するんだ📬
   try {
     if (request.updated) {
+      // 更新が必要なら、ルールに合わないタブをキックアウトして、古いエントリをクリアするんだ🧹
       await kickoutNonMatchingTabs();
       await clearOldEntries();
       await clearOldWindowEntries();
       assignAllTabsInWindow();
     } else if (request.collapse) {
+      // グループを折りたたむ指示があれば、そうするんだ🔽
       updateTabGroups({ collapsed: true });
     } else if (request.expand) {
+      // グループを展開する指示があれば、そうするんだ🔼
       updateTabGroups({ collapsed: false });
     }
   } catch (e) {
+    // 何か問題があったら、エラーをコンソールに出力するよ🚨
     console.error(e.stack);
   }
 });
@@ -419,6 +431,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
  * @param {Object} tabGroup - 更新されたタブグループ
  */
 const handleTabGroupUpdate = async (tabGroup) => {
+  // タブグループが更新されたら、タブを整列させて、ルールに基づいてグループを更新するんだ🛠
   alignTabs(tabGroup.windowId);
   const rules = await getGroupRules();
   for (const r of rules) {
@@ -431,6 +444,7 @@ const handleTabGroupUpdate = async (tabGroup) => {
 };
 
 if (chrome.tabGroups) {
+  // タブグループがサポートされているブラウザで、タブグループが更新されたら処理するんだ👍
   chrome.tabGroups.onUpdated.addListener(
     debounce(handleTabGroupUpdate, 100, { leading: true, trailing: false })
   );
