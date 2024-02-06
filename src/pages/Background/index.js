@@ -1,26 +1,27 @@
-import debounce from 'lodash.debounce';
-import { localStorage, syncStorage } from './storageManager';
+import debounce from 'lodash.debounce'; // lodashのdebounce関数をインポートしてるよ！🚀 関数の連続呼び出しを制御するために使うんだ！
+import { localStorage, syncStorage } from './storageManager'; // ストレージ管理用のモジュールをインポートしてるよ！📦
 
+// タブの色を定義してる配列だよ！🌈
 const tabColors = [
-  'grey',
-  'yellow',
-  'blue',
-  'purple',
-  'green',
-  'red',
-  'pink',
-  'cyan',
-  'orange',
+  'grey', // グレー
+  'yellow', // イエロー
+  'blue', // ブルー
+  'purple', // パープル
+  'green', // グリーン
+  'red', // レッド
+  'pink', // ピンク
+  'cyan', // シアン
+  'orange', // オレンジ
 ];
 
-let collapsed = false;
+let collapsed = false; // タブグループが折りたたまれているかどうかの状態を保持する変数だよ！📂
 
 /**
- * すべてのウィンドウキーをクリアするよ！🧹
+ * すべてのウィンドウキーをクリアする関数だよ！🧹
  */
 const clearAllWindowKeys = () => {
-  syncStorage.removeAll('window:');
-  localStorage.removeAll('window:');
+  syncStorage.removeAll('window:'); // 同期ストレージからウィンドウ関連のデータを全て削除するよ！
+  localStorage.removeAll('window:'); // ローカルストレージからもウィンドウ関連のデータを全て削除するよ！
 };
 
 /**
@@ -29,92 +30,95 @@ const clearAllWindowKeys = () => {
  * @returns {RegExp} - 生成された正規表現
  */
 function matchRuleShort(rule) {
-  var escapeRegex = (str) => str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
-  return new RegExp(rule.split('*').map(escapeRegex).join('.*'));
+  var escapeRegex = (str) => str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1'); // 特殊文字をエスケープする関数だよ！
+  return new RegExp(rule.split('*').map(escapeRegex).join('.*')); // '*'を任意の文字列にマッチする正規表現に変換するよ！
 }
 
 /**
- * グループルールを取得するよ！📚
+ * グループルールを取得する関数だよ！📚
  * @returns {Promise<Array>} - ソートされたグループルールの配列
  */
 const getGroupRules = async () => {
-  const groupRules = await syncStorage.get('groupRules');
-  return groupRules ? groupRules.sort((a, b) => a.key - b.key) : [];
+  const groupRules = await syncStorage.get('groupRules'); // 同期ストレージからグループルールを取得するよ！
+  return groupRules ? groupRules.sort((a, b) => a.key - b.key) : []; // グループルールがあればキーでソートして返すよ！なければ空の配列を返すよ！
 };
 
 /**
- * 現在のウィンドウを取得するよ！🏠
+ * 現在のウィンドウを取得する関数だよ！🏠
  * @returns {Promise<Object>} - 現在のウィンドウオブジェクト
  */
 const getCurrentWindow = async () => {
-  const window = await chrome.windows.getCurrent();
-  return window;
+  const window = await chrome.windows.getCurrent(); // 現在のウィンドウオブジェクトを取得するよ！
+  return window; // 取得したウィンドウオブジェクトを返すよ！
 };
 
 /**
- * タブグループに対するルールを取得するよ！📏
+ * タブグループに対するルールを取得する関数だよ！📏
  * @param {number} tabGroupId - タブグループのID
  * @returns {Promise<Object|null>} - ルールオブジェクト、またはnull
  */
 const getRuleForTabGroup = async (tabGroupId) => {
   const windowGroupEntries = await localStorage.getAll(
     `window:.*:rule:.*:groupId`
-  );
-  const match = windowGroupEntries.find(([k, v]) => v === tabGroupId);
+  ); // ローカルストレージからタブグループIDに関連するデータを全て取得するよ！
+  const match = windowGroupEntries.find(([k, v]) => v === tabGroupId); // 取得したデータの中から、指定されたタブグループIDにマッチするものを探すよ！
   if (match) {
     const [k, v] = match;
     const ruleId = k
       .replace(new RegExp('window:.*:rule:'), '')
-      .replace(':groupId', '');
-    const groupRules = await getGroupRules();
-    return groupRules.find((r) => r.id.toString() === ruleId);
+      .replace(':groupId', ''); // マッチしたデータからルールIDを抽出するよ！
+    const groupRules = await getGroupRules(); // グループルールを取得するよ！
+    return groupRules.find((r) => r.id.toString() === ruleId); // ルールIDにマッチするグループルールを返すよ！
   }
-  return null;
+  return null; // マッチするものがなければnullを返すよ！
 };
 
 /**
- * 特定のウィンドウIDに対するアシッドタブグループを取得するよ！🧪
+ * 特定のウィンドウIDに対するアシッドタブグループを取得する関数だよ！🧪
  * @param {number|null} windowId - ウィンドウID、指定しない場合はnull
  * @returns {Promise<Array>} - タブグループIDの配列
  */
 const getAcidTabGroups = async (windowId = null) => {
   const pattern = windowId
     ? `window:${windowId}:rule:.*:groupId`
-    : `window:.*:rule:.*:groupId`;
-  const windowGroupEntries = await localStorage.getAll(pattern);
-  return windowGroupEntries.map(([k, v]) => v) || [];
+    : `window:.*:rule:.*:groupId`; // 指定されたウィンドウIDに基づいて検索パターンを作成するよ！
+  const windowGroupEntries = await localStorage.getAll(pattern); // ローカルストレージから検索パターンにマッチするデータを全て取得するよ！
+  return windowGroupEntries.map(([k, v]) => v) || []; // 取得したデータからタブグループIDの配列を作成して返すよ！
 };
 
 /**
- * IDに基づいてタブグループを取得するよ！🔍
+ * IDに基づいてタブグループを取得する関数だよ！🔍
  * @param {number} id - タブグループのID
  * @returns {Promise<Object>} - タブグループオブジェクト
  */
 const getTabGroup = async (id) =>
-  new Promise((resolve) => chrome.tabGroups.get(id, resolve));
+  new Promise((resolve) => chrome.tabGroups.get(id, resolve)); // 指定されたIDのタブグループオブジェクトを取得するよ！
 
 /**
- * タブグループを更新するよ！🔄
+ * タブグループを更新する関数だよ！🔄
  * @param {Object} args - 更新する引数（collapsedなど）
  */
 const updateTabGroups = async (args = {}) => {
   if (chrome.tabGroups) {
+    // タブグループAPIが利用可能かチェックするよ！
     if (args.collapsed !== undefined) {
-      collapsed = args.collapsed;
+      collapsed = args.collapsed; // 引数でcollapsedが指定されていれば、状態を更新するよ！
     }
-    const tabGroups = await getAcidTabGroups();
+    const tabGroups = await getAcidTabGroups(); // アシッドタブグループを取得するよ！
     for (const tabGroupId of tabGroups) {
+      // 取得したタブグループIDごとにループするよ！
       try {
-        const group = await getTabGroup(tabGroupId);
+        const group = await getTabGroup(tabGroupId); // タブグループオブジェクトを取得するよ！
         if (!group) {
+          // タブグループが存在しなければ、次のループへスキップするよ！
           console.log('no group');
           continue;
         }
-        chrome.tabGroups.update(tabGroupId, args);
-        const rule = await getRuleForTabGroup(tabGroupId);
-        if (rule) updateTabGroupForRule(group.windowId, group.id, rule);
+        chrome.tabGroups.update(tabGroupId, args); // タブグループを更新するよ！
+        const rule = await getRuleForTabGroup(tabGroupId); // タブグループに対するルールを取得するよ！
+        if (rule) updateTabGroupForRule(group.windowId, group.id, rule); // ルールがあれば、タブグループをルールに基づいて更新するよ！
       } catch (e) {
-        console.error(e.stack);
+        console.error(e.stack); // エラーが発生したら、エラーメッセージをコンソールに出力するよ！
       }
     }
   }
@@ -275,25 +279,26 @@ const clearOldEntries = async () => {
  */
 const updateTabGroupForRule = async (windowId, groupId, rule) => {
   if (chrome.tabGroups) {
-    const rules = await getGroupRules();
-    const color = getColorForRule(rule, rules);
-    const group = await getTabGroup(groupId);
-    if (!group) return;
+    // タブグループAPIが利用可能かチェックするよ！
+    const rules = await getGroupRules(); // グループルールを取得するよ！
+    const color = getColorForRule(rule, rules); // ルールに基づいて色を取得するよ！
+    const group = await getTabGroup(groupId); // タブグループオブジェクトを取得するよ！
+    if (!group) return; // タブグループが存在しなければ、処理を終了するよ！
 
     const tabs = await new Promise((resolve) =>
       chrome.tabs.query({ windowId }, resolve)
-    );
-    const tabsInGroup = tabs.filter((t) => t.groupId === groupId);
+    ); // 指定されたウィンドウIDのタブを全て取得するよ！
+    const tabsInGroup = tabs.filter((t) => t.groupId === groupId); // 取得したタブの中から、指定されたグループIDに属するタブをフィルタリングするよ！
     const title =
       group.collapsed && tabsInGroup.length
-        ? `${rule.name} (${tabsInGroup.length})`
-        : rule.name;
-    chrome.tabGroups.update(groupId, { title, color });
+        ? `${rule.name} (${tabsInGroup.length})` // タブグループが折りたたまれていて、タブが1つ以上あれば、タイトルにタブの数を追加するよ！
+        : rule.name; // それ以外の場合は、ルールの名前をそのままタイトルとするよ！
+    chrome.tabGroups.update(groupId, { title, color }); // タブグループのタイトルと色を更新するよ！
   }
 };
 
 /**
- * タブグループ🗂を取得または作成するよ！
+ * タブグループ🗂を取得または作成する関数だよ！
  * 既存のグループIDがあればそれを使って、なければ新しいグループを作成するんだ。
  *
  * @param {number} windowId - ウィンドウID🏠だよ。
@@ -302,26 +307,26 @@ const updateTabGroupForRule = async (windowId, groupId, rule) => {
  * @returns {Promise<number>} グループID🆔を返すよ。
  */
 const getOrCreateTabGroup = async (windowId, tabId, existingGroupId) => {
-  const createProperties = existingGroupId ? undefined : { windowId };
+  const createProperties = existingGroupId ? undefined : { windowId }; // 既存のグループIDがあれば、新しいグループを作成しないようにするよ！
   let groupId;
   try {
     groupId = await chrome.tabs.group({
       tabIds: tabId,
       groupId: existingGroupId,
       createProperties,
-    });
+    }); // タブをグループに追加するよ！既存のグループIDがあればそれを使って、なければ新しいグループを作成するよ！
   } catch (e) {
-    const isNoGroupError = e.message.startsWith('No group with id');
+    const isNoGroupError = e.message.startsWith('No group with id'); // エラーメッセージが「No group with id」で始まるかチェックするよ！
     if (isNoGroupError) {
-      const createProperties = { windowId };
-      groupId = await chrome.tabs.group({ tabIds: tabId, createProperties });
-      return groupId;
+      const createProperties = { windowId }; // 新しいグループを作成するためのプロパティを設定するよ！
+      groupId = await chrome.tabs.group({ tabIds: tabId, createProperties }); // 新しいグループを作成して、タブを追加するよ！
+      return groupId; // 作成したグループIDを返すよ！
     }
 
-    throw e;
+    throw e; // それ以外のエラーが発生した場合は、そのままエラーを投げるよ！
   }
 
-  return groupId;
+  return groupId; // グループIDを返すよ！
 };
 
 /**
@@ -357,6 +362,7 @@ const alignTabs = async (windowId) => {
     }
   }
 };
+
 /**
  * タブ📑を処理し、適切なタブグループ🗂に割り当てる関数です。
  * タブが特定のルール📏に一致する場合、そのルールに基づいてタブグループを作成または更新します。
