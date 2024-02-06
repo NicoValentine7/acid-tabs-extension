@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Acid Tabs",
+  "name": "GroupTabs",
   "description": "Auto-Grouping Magic for your Tabs",
   "options_page": "options.html",
   "background": { "service_worker": "background.bundle.js" },
